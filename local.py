@@ -147,12 +147,12 @@ def load_prompts(prompt_file):
     return prompts
 
 # 加载 prompts.txt 文件中的所有 prompt
-prompts = load_prompts("D:\Astudying\VideoEval\data\Prompts4dimensions\overall_consistency.txt")
+prompts = load_prompts("/home/yons/lsy/data/Prompts4dimensions/color.txt")
 
 def showcase(page_num):
     videos_per_prompt = 3
     models = ['gen2', 'videocrafter2', 'pika', 'show1', 'lavie']
-    subdirectory = 'overall_consistency'
+    subdirectory = 'color'
     
     prompt_index = (page_num - 1) // videos_per_prompt
     video_group = (page_num - 1) % videos_per_prompt
