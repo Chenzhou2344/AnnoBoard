@@ -148,29 +148,20 @@ def load_prompts(prompt_file):
         prompts = [line.strip() for line in file.readlines()]
     return prompts
 
-<<<<<<< HEAD
 def get_prompts(data_path):
     global subdirectory
     prompt_file = data_path.format(subdirectory)
     return load_prompts(prompt_file)
-=======
-# 加载 prompts.txt 文件中的所有 prompt
-prompts = load_prompts("/home/yons/lsy/data/Prompts4dimensions/color.txt")
->>>>>>> 480a8bb9ebc4fa132f1e05695dff7bfc2069841b
 
 def showcase(page_num):
     global subdirectory
 
     videos_per_prompt = 3
     models = ['gen2', 'videocrafter2', 'pika', 'show1', 'lavie']
-<<<<<<< HEAD
     prompts = get_prompts(data_path)
 
     global total_pages
     total_pages = len(prompts) * videos_per_prompt
-=======
-    subdirectory = 'color'
->>>>>>> 480a8bb9ebc4fa132f1e05695dff7bfc2069841b
     
     prompt_index = (page_num - 1) // videos_per_prompt
     video_group = (page_num - 1) % videos_per_prompt
