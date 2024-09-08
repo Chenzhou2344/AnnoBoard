@@ -140,25 +140,33 @@ window.onload = addMotionBackgrounds;
 </script>
 """
 
-# 读取 prompt 文件
+data_path = "D:\\Astudying\\VideoEval\\data\\Prompts4dimensions\\{}.txt"
+total_pages = 1
+subdirectory = "overall_consistency"# 读取 prompt 文件
 def load_prompts(prompt_file):
     with open(prompt_file, 'r') as file:
         prompts = [line.strip() for line in file.readlines()]
     return prompts
 
-# 加载 prompts.txt 文件中的所有 prompt
-prompts = load_prompts("D:\Astudying\VideoEval\data\Prompts4dimensions\overall_consistency.txt")
+def get_prompts(data_path):
+    global subdirectory
+    prompt_file = data_path.format(subdirectory)
+    return load_prompts(prompt_file)
 
 def showcase(page_num):
+    global subdirectory
+
     videos_per_prompt = 3
     models = ['gen2', 'videocrafter2', 'pika', 'show1', 'lavie']
-    subdirectory = 'overall_consistency'
+    prompts = get_prompts(data_path)
+
+    global total_pages
+    total_pages = len(prompts) * videos_per_prompt
     
     prompt_index = (page_num - 1) // videos_per_prompt
     video_group = (page_num - 1) % videos_per_prompt
     
     video_html = "<div class='gallery-container'>"
-    
     prompt_text = prompts[prompt_index]
 
     for model in models:
@@ -208,16 +216,18 @@ def navigate_to_page(page_num, page_slider):
     return page_slider, showcase(page_slider)
 
 # 定义总页数
-total_prompts = len(prompts)  # 获取 prompt 数量
-videos_per_prompt = 3
-total_pages = total_prompts * videos_per_prompt
-
 current_page = 1  # 使用普通变量保存当前页码
 
 with gr.Blocks(css=css) as app:
     gr.Markdown(description_html)
     gr.Markdown(js)
 
+
+    subdirectory_dropdown = gr.Dropdown(
+        choices=['overall_consistency', 'scene', 'object_class'],
+        label="Select dimension",  # 设置默认值
+        value='overall_consistency'
+    )
     with gr.Row():
         beginning_button = gr.Button("Beginning")
         previous_button = gr.Button("Previous")
@@ -226,8 +236,14 @@ with gr.Blocks(css=css) as app:
     page_slider = gr.Slider(minimum=1, maximum=total_pages, step=1, value=1, label="Go to page")
     output_html = gr.HTML()
 
+    def update_subdirectory(selected_value):
+        global subdirectory
+        subdirectory = selected_value
+        return initialization()
+
     def update_output(direction):
         global current_page
+        global subdirectory
         if isinstance(direction, int):
             current_page = direction
         else:
@@ -240,14 +256,15 @@ with gr.Blocks(css=css) as app:
         current_page = 1
         return current_page, showcase(current_page)
 
-    app.load(fn=initialization, inputs=None, outputs=[page_slider, output_html])
-    
+    app.load(fn=lambda: initialization(), inputs=None, outputs=[page_slider, output_html])
+
+    subdirectory_dropdown.change(fn=update_subdirectory, inputs=subdirectory_dropdown, outputs=[page_slider, output_html])
+
     beginning_button.click(fn=lambda: update_output("Beginning"), inputs=None, outputs=[page_slider, output_html])
     previous_button.click(fn=lambda: update_output("Previous"), inputs=None, outputs=[page_slider, output_html])
     next_button.click(fn=lambda: update_output("Next"), inputs=None, outputs=[page_slider, output_html])
     end_button.click(fn=lambda: update_output("End"), inputs=None, outputs=[page_slider, output_html])
     page_slider.change(fn=lambda x: update_output(x), inputs=page_slider, outputs=[page_slider, output_html])
-
     # 初始化显示第一页内容
     output_html.update(value=showcase(current_page))
 
