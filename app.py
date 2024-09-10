@@ -150,6 +150,13 @@ input[type="text"]:focus, select:focus, textarea:focus {
 
 </style>
 """
+scroll_js = """
+<script>
+function scrollToHeight(height) {
+    body.scrollTo({ top: height, behavior: 'smooth' });
+}
+</script>
+"""
 
 js = """
 <script>
@@ -178,7 +185,7 @@ window.onload = addMotionBackgrounds;
 data_path = "../../data/Prompts4dimensions/{}.txt"
 subdirectory = "overall_consistency"# 读取 prompt 文件
 annokey = "overall_consistency"
-models = ['cogvideox','gen3', 'kling','videocrafter2', 'pika', 'show1', 'lavie']
+models = ['cogvideox5b','gen3', 'kling','videocrafter2', 'pika', 'show1', 'lavie']
 dimension4data = {
     "temporal_consistency": "action",
     "aesthetic_quality": "overall_consistency",
@@ -249,7 +256,7 @@ def showcase(page_num):
 
     for model in models:
         video_name = f"{prompt_text}_{video_group}.mp4"
-        video_url = f"http://localhost:8000/data/{model}/{subdirectory}/{video_name}"
+        video_url = f"/home/yons/lsy/data/{model}/{subdirectory}/{video_name}"
         
         # if os.path.exists(os.path.join('data', model, subdirectory, video_name)):
         video_html.append(f"""
@@ -305,6 +312,7 @@ def navigate_to_page(page_num, page_slider):
 with gr.Blocks(css=css)  as app:
     gr.Markdown(description_html)
     gr.Markdown(js)
+    scroll = gr.HTML(scroll_js)  # 添加 JavaScript 代码
 
     page_num = gr.State(value=1)
     anno_times = gr.State(value=1)
@@ -373,7 +381,7 @@ with gr.Blocks(css=css)  as app:
     next_button.click(fn=lambda: update_output("Next"), inputs=None, outputs=[page_slider, annotation_help, *videhtmls.values()])
     end_button.click(fn=lambda: update_output("End"), inputs=None, outputs=[page_slider, annotation_help, *videhtmls.values()])
     page_slider.change(fn=lambda x: update_output(x), inputs=page_slider, outputs=[page_slider, annotation_help, *videhtmls.values()])
-    next_button2.click(fn=lambda: update_output("Next"), inputs=None, outputs=[page_slider, annotation_help, *videhtmls.values(),])
+    next_button2.click(fn=lambda: update_output("Next"), inputs=None, outputs=[page_slider, annotation_help, *videhtmls.values()])
     for model in models:
         videoscores[model].change(fn=lambda x: x, inputs=videoscores[model], outputs=None)
     subbmition_button.click(fn=submit, inputs=None, outputs=None)
