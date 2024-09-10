@@ -2,6 +2,9 @@ import gradio as gr
 import os
 import pandas as pd
 import json
+import requests
+import base64
+
 css = """
 <style>
 body, html {
@@ -198,6 +201,14 @@ dimension4data = {
     "overall_consistency": "overall_consistency"
 }
 
+data4dimensions = {
+'action': ['temporal_consistency', 'motion_effects','action'],
+'object_class': ['object_class'],
+'color': ['color'],
+'scene': ['scene'],
+'overall_consistency': ['aesthetic_quality', 'imaging_quality','overall_consistency']
+}
+
 annos = {
     "temporal_consistency": "temporal_consistency",
     "aesthetic_quality": "aesthetic_quality",
@@ -209,11 +220,20 @@ annos = {
     "action": "action",
     "overall_consistency": "overall_consistency"
 }
-jsonpath = "annotation.json"
-with open(jsonpath, 'r') as file:
-    annofile = json.load(file)
+jsonpath = "../../data/annotation.json"
+if jsonpath.startswith('http://') or jsonpath.startswith('https://'):
+    response = requests.get(jsonpath)
+    response.raise_for_status()  # 确保请求成功
+    annofile =  response.text.splitlines()  # 返回文本文件的每一行
+else:
+    with open(jsonpath, 'r') as file:
+        annofile = json.load(file)
 
 def load_prompts(prompt_file):
+    if prompt_file.startswith('http://') or prompt_file.startswith('https://'):
+        response = requests.get(prompt_file)
+        response.raise_for_status()  # 确保请求成功
+        return response.text.splitlines()  # 返回文本文件的每一行
     with open(prompt_file, 'r') as file:
         prompts = [line.strip() for line in file.readlines()]
     return prompts
@@ -226,6 +246,11 @@ def get_prompts(data_path):
 
 total_pages = len(get_prompts(data_path)) * 3
 
+
+def video_to_base64(video_path):
+    with open(video_path, "rb") as video_file:
+        base64_video = base64.b64encode(video_file.read()).decode('utf-8')
+    return base64_video
 
 def showcase(page_num):
     global subdirectory
@@ -256,14 +281,15 @@ def showcase(page_num):
 
     for model in models:
         video_name = f"{prompt_text}_{video_group}.mp4"
-        video_url = f"/home/yons/lsy/data/{model}/{subdirectory}/{video_name}"
-        
+        # video_url = f"../../data/{model}/{subdirectory}/{video_name}"
+        video_path = f"../../data/{model}/{subdirectory}/{video_name}"
+        base64_video = video_to_base64(video_path)
         # if os.path.exists(os.path.join('data', model, subdirectory, video_name)):
         video_html.append(f"""
         <div class='video-container'>
         <div class='video-item'> 
             <video controls>
-                <source src="{video_url}" type="video/mp4">
+                <source src="data:video/mp4;base64,{base64_video}" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
             <p class='video-caption'>{model}: {prompt_text}</p>
@@ -317,11 +343,11 @@ with gr.Blocks(css=css)  as app:
     page_num = gr.State(value=1)
     anno_times = gr.State(value=1)
 
-    videoscores = {}    
+    videoscores = {'cogvideox5b': {}, 'gen3': {}, 'kling': {}, 'videocrafter2': {}, 'pika': {}, 'show1': {}, 'lavie': {}}    
     videhtmls = {}
 
     subdirectory_dropdown = gr.Dropdown(
-    choices=['overall_consistency', 'scene', 'object_class','action','color','temporal_consistency','motion_effects','imaging_quality','aesthetic_quality'],
+    choices=['overall_consistency', 'scene', 'object_class','action','color'],
     label="Select dimension",  # 设置默认值
     value='overall_consistency'
     )
@@ -335,7 +361,8 @@ with gr.Blocks(css=css)  as app:
     annotation_help = gr.HTML()
     for model in models:
         videhtmls[model] = gr.HTML()
-        videoscores[model] = gr.Slider(minimum=1, maximum=5, step=1, value=3, label=f"{model} score")
+        for dimension in data4dimensions[dimension4data[subdirectory]]:
+            videoscores[model][dimension] = gr.Slider(minimum=1, maximum=5, step=1, value=3, label=f"{model} score for {dimension}")
 
     with gr.Row():
         subbmition_button = gr.Button("Submit")
@@ -344,7 +371,8 @@ with gr.Blocks(css=css)  as app:
     def submit():
         global annofile
         for model in models:
-            annofile[subdirectory][str(page_num.value)][model] = videoscores[model].value
+            for dimension in data4dimensions[dimension4data[subdirectory]]:
+                annofile[dimension][str(page_num.value)][model] = videoscores[model].value
         anno_times.value += 1
         if anno_times.value % 5 == 0:
             with open(jsonpath, 'w') as file:
@@ -383,7 +411,8 @@ with gr.Blocks(css=css)  as app:
     page_slider.change(fn=lambda x: update_output(x), inputs=page_slider, outputs=[page_slider, annotation_help, *videhtmls.values()])
     next_button2.click(fn=lambda: update_output("Next"), inputs=None, outputs=[page_slider, annotation_help, *videhtmls.values()])
     for model in models:
-        videoscores[model].change(fn=lambda x: x, inputs=videoscores[model], outputs=None)
+        for dimension in data4dimensions[dimension4data[subdirectory]]:
+            videoscores[model][dimension].change(fn=lambda x: x, inputs=videoscores[model][dimension], outputs=None)
     subbmition_button.click(fn=submit, inputs=None, outputs=None)
 
 app.launch(share=True) 
