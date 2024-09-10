@@ -158,7 +158,6 @@ function addContentToFloatingWindow(content) {
     floatingWindowContent.innerHTML = content;
 }
 
-
 function addMotionBackgrounds() {
     // Select all video containers
     var containers = document.querySelectorAll('.video-container');
@@ -176,7 +175,7 @@ function addMotionBackgrounds() {
 window.onload = addMotionBackgrounds;
 </script>
 """
-data_path = "../data/Prompts4dimensions/{}.txt"
+data_path = "../../data/Prompts4dimensions/{}.txt"
 subdirectory = "overall_consistency"# 读取 prompt 文件
 annokey = "overall_consistency"
 models = ['cogvideox','gen3', 'kling','videocrafter2', 'pika', 'show1', 'lavie']
@@ -306,6 +305,7 @@ def navigate_to_page(page_num, page_slider):
 with gr.Blocks(css=css)  as app:
     gr.Markdown(description_html)
     gr.Markdown(js)
+
     page_num = gr.State(value=1)
     anno_times = gr.State(value=1)
 
@@ -336,7 +336,7 @@ with gr.Blocks(css=css)  as app:
     def submit():
         global annofile
         for model in models:
-            annofile[subdirectory][model][page_num.value] = videoscores[model].value
+            annofile[subdirectory][str(page_num.value)][model] = videoscores[model].value
         anno_times.value += 1
         if anno_times.value % 5 == 0:
             with open(jsonpath, 'w') as file:
@@ -373,7 +373,7 @@ with gr.Blocks(css=css)  as app:
     next_button.click(fn=lambda: update_output("Next"), inputs=None, outputs=[page_slider, annotation_help, *videhtmls.values()])
     end_button.click(fn=lambda: update_output("End"), inputs=None, outputs=[page_slider, annotation_help, *videhtmls.values()])
     page_slider.change(fn=lambda x: update_output(x), inputs=page_slider, outputs=[page_slider, annotation_help, *videhtmls.values()])
-    next_button2.click(fn=lambda: update_output("Next"), inputs=None, outputs=[page_slider, annotation_help, *videhtmls.values()])
+    next_button2.click(fn=lambda: update_output("Next"), inputs=None, outputs=[page_slider, annotation_help, *videhtmls.values(),])
     for model in models:
         videoscores[model].change(fn=lambda x: x, inputs=videoscores[model], outputs=None)
     subbmition_button.click(fn=submit, inputs=None, outputs=None)
