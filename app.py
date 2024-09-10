@@ -1,7 +1,7 @@
 import gradio as gr
 import os
 import pandas as pd
-
+import json
 css = """
 <style>
 body, html {
@@ -203,8 +203,9 @@ annos = {
     "action": "action",
     "overall_consistency": "overall_consistency"
 }
-
-
+jsonpath = "annotation.json"
+with open(jsonpath, 'r') as file:
+    annofile = json.load(file)
 
 def load_prompts(prompt_file):
     with open(prompt_file, 'r') as file:
@@ -306,6 +307,8 @@ with gr.Blocks(css=css)  as app:
     gr.Markdown(description_html)
     gr.Markdown(js)
     page_num = gr.State(value=1)
+    anno_times = gr.State(value=1)
+
     videoscores = {}    
     videhtmls = {}
 
@@ -330,6 +333,16 @@ with gr.Blocks(css=css)  as app:
         subbmition_button = gr.Button("Submit")
         next_button2 = gr.Button("Next")
 
+    def submit():
+        global annofile
+        for model in models:
+            annofile[subdirectory][model][page_num.value] = videoscores[model].value
+        anno_times.value += 1
+        if anno_times.value % 5 == 0:
+            with open(jsonpath, 'w') as file:
+                json.dump(annofile, file)
+            with open(jsonpath, 'r') as file:
+                annofile = json.load(file)
 
     def update_subdirectory(selected_value):
         global subdirectory, annokey
@@ -363,6 +376,6 @@ with gr.Blocks(css=css)  as app:
     next_button2.click(fn=lambda: update_output("Next"), inputs=None, outputs=[page_slider, annotation_help, *videhtmls.values()])
     for model in models:
         videoscores[model].change(fn=lambda x: x, inputs=videoscores[model], outputs=None)
-
+    subbmition_button.click(fn=submit, inputs=None, outputs=None)
 
 app.launch(share=True) 
