@@ -83,7 +83,7 @@ body, html {
 }
 
 .video-caption {
-    color: #121212; /* Maintain white text for captions */
+    color: #00008B; /* Maintain white text for captions */
     padding: 0.5rem;
     border-radius: 4px;
     margin-top: 0.5rem;
