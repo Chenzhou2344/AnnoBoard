@@ -4,7 +4,7 @@ import pandas as pd
 import json
 import requests
 import base64
-
+import anno_helper
 css = """
 <style>
 body, html {
@@ -217,7 +217,7 @@ annos = {
     "motion_effects": "motion_effects",
     "object_class": "object_class",
     "color": "color",
-    "scene": "scene",
+    "scene": anno_helper.scene_help,
     "action": "action",
     "overall_consistency": "overall_consistency"
 }
@@ -360,9 +360,10 @@ with gr.Blocks(css=css)  as app:
     annotation_help = gr.HTML()
     for model in models:
         videhtmls[model] = gr.HTML()
-        for i in range(3):
-            key = f"{model}_{i}"
-            videoscores[key]=gr.Slider(minimum=1, maximum=5, step=1, value=3, label=f"{model} score {data4dimensions[subdirectory][i]}")
+        with gr.Row():
+            for i in range(3):
+                key = f"{model}_{i}"
+                videoscores[key]=gr.Slider(minimum=1, maximum=5, step=1, value=3, label=f"{model} score {data4dimensions[subdirectory][i]}")
 
     with gr.Row():
         subbmition_button = gr.Button("Submit")
@@ -419,7 +420,6 @@ with gr.Blocks(css=css)  as app:
         else:
             new_page_num = navigate(direction, page_num.value)
         page_num.value = new_page_num
-        print(videoscores['cogvideox5b_0'].value)
         content = showcase(new_page_num)
         return new_page_num, *content
     
