@@ -377,6 +377,7 @@ with gr.Blocks(css=css)  as app:
             new_page_num = navigate(direction, page_num.value)
         page_num.value = new_page_num
         content = showcase(new_page_num)
+        print(videoscores['cogvideox5b'].value)
         return new_page_num, *content
     
     def initialization(start):

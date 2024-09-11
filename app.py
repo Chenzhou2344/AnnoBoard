@@ -185,7 +185,7 @@ function addMotionBackgrounds() {
 window.onload = addMotionBackgrounds;
 </script>
 """
-data_path = "../data/Prompts4dimensions/{}.txt"
+data_path = "../../data/Prompts4dimensions/{}.txt"
 subdirectory = "overall_consistency"# 读取 prompt 文件
 annokey = "overall_consistency"
 models = ['cogvideox5b','gen3', 'kling','videocrafter2', 'pika', 'show1', 'lavie']
@@ -283,7 +283,7 @@ def showcase(page_num):
     for model in models:
         video_name = f"{prompt_text}_{video_group}.mp4"
         # video_url = f"../../data/{model}/{subdirectory}/{video_name}"
-        video_path = f"../data/{model}/{subdirectory}/{video_name}"
+        video_path = f"../../data/{model}/{subdirectory}/{video_name}"
         base64_video = video_to_base64(video_path)
         # if os.path.exists(os.path.join('data', model, subdirectory, video_name)):
         video_html.append(f"""
@@ -370,39 +370,47 @@ with gr.Blocks(css=css)  as app:
 
     def show_scoresliders():
         sliders = []
-        if len(data4dimensions[subdirectory]) == 1:
+        if len(data4dimensions[annokey]) == 1:
             for model in models:
-                sliders.append(gr.Slider(minimum=1, maximum=5, step=1, value=3, label=f"{model} score for {data4dimensions[subdirectory][0]}"))
+                sliders.append(gr.Slider(minimum=1, maximum=5, step=1, value=3, label=f"{model} score for {data4dimensions[annokey][0]}"))
                 sliders.append(gr.Slider(minimum=1, maximum=5, step=1, value=3, visible=False))
                 sliders.append(gr.Slider(minimum=1, maximum=5, step=1, value=3, visible=False))
         else:
             for model in models:
-                sliders.append(gr.Slider(minimum=1, maximum=5, step=1, value=3, label=f"{model} score for {data4dimensions[subdirectory][0]}"))
-                sliders.append(gr.Slider(minimum=1, maximum=5, step=1, value=3, label=f"{model} score for {data4dimensions[subdirectory][1]}"))
-                sliders.append(gr.Slider(minimum=1, maximum=5, step=1, value=3, label=f"{model} score for {data4dimensions[subdirectory][2]}"))
+                sliders.append(gr.Slider(minimum=1, maximum=5, step=1, value=3, label=f"{model} score for {data4dimensions[annokey][0]}",visible=True))
+                sliders.append(gr.Slider(minimum=1, maximum=5, step=1, value=3, label=f"{model} score for {data4dimensions[annokey][1]}",visible=True))
+                sliders.append(gr.Slider(minimum=1, maximum=5, step=1, value=3, label=f"{model} score for {data4dimensions[annokey][2]}",visible=True))
         
         return sliders
 
-    def submit():
+    def submit(*scores):
         global annofile
-        for model in models:
-            for i in range(3):
-                key = f"{model}_{i}"
-                dim = data4dimensions[subdirectory][i]
-                annofile[annokey][page_num.value-1][key] = videoscores[key].value
+        if len(data4dimensions[annokey]) == 1:        
+            for i in range(len(models)):
+                model = models[i]
+                annofile[annokey][str(page_num.value)][model] = scores[i*3]
+        else:
+            for i in range(len(models)):
+                model = models[i]
+                for j in range(3):
+                    annofile[data4dimensions[annokey][j]][str(page_num.value)][model] = scores[i*3+j]
 
         anno_times.value += 1
         if anno_times.value % 5 == 0:
             with open(jsonpath, 'w') as file:
-                json.dump(annofile, file)
+                json.dump(annofile, file,indent=4)
             with open(jsonpath, 'r') as file:
                 annofile = json.load(file)
-
     def update_subdirectory(selected_value):
         global subdirectory, annokey
         subdirectory = dimension4data[selected_value]
         annokey = selected_value
-        return *show_scoresliders(),gr.Slider(minimum=1, maximum=len(get_prompts(data_path))*3, step=1, value=1, label="Go to page"),*initialization(1)
+        page_num.value = 1
+        return *show_scoresliders(),gr.Slider(minimum=1, maximum=len(get_prompts(data_path))*3, step=1, value=1, label="Go to page"),*showcase(1)
+
+    def update_socre(value):
+
+        return value
 
     def update_output(direction):
         # new_page_num = navigate(direction, page_num.value)
@@ -411,12 +419,13 @@ with gr.Blocks(css=css)  as app:
         else:
             new_page_num = navigate(direction, page_num.value)
         page_num.value = new_page_num
+        print(videoscores['cogvideox5b_0'].value)
         content = showcase(new_page_num)
         return new_page_num, *content
     
     def initialization(start):
         page_num.value = int(start)
-        return page_num.value, *showcase(page_num.value)
+        return page_num.value,*showcase(page_num.value)
 
     app.load(fn=lambda: initialization('1'), inputs=None, outputs=[page_slider, annotation_help, *videhtmls.values()])
     
@@ -426,12 +435,15 @@ with gr.Blocks(css=css)  as app:
     previous_button.click(fn=lambda: update_output("Previous"), inputs=None, outputs=[page_slider, annotation_help, *videhtmls.values()])
     next_button.click(fn=lambda: update_output("Next"), inputs=None, outputs=[page_slider, annotation_help, *videhtmls.values()])
     end_button.click(fn=lambda: update_output("End"), inputs=None, outputs=[page_slider, annotation_help, *videhtmls.values()])
-    page_slider.change(fn=lambda x: update_output(x), inputs=page_slider, outputs=[page_slider, annotation_help, *videhtmls.values()])
+    page_slider.input(fn=lambda x: update_output(x), inputs=page_slider, outputs=[page_slider, annotation_help, *videhtmls.values()])
     next_button2.click(fn=lambda: update_output("Next"), inputs=None, outputs=[page_slider, annotation_help, *videhtmls.values()])
+    
+    
     for model in models:
         for i in range(3):
             key = f"{model}_{i}"
-            videoscores[key].change(fn=lambda x: x, inputs=videoscores[key], outputs=None)
-    subbmition_button.click(fn=submit, inputs=None, outputs=None)
+            videoscores[key].input(fn=update_socre, inputs=videoscores[key], outputs=videoscores[key]) 
+
+    subbmition_button.click(fn=submit, inputs=list(videoscores.values()), outputs=None)
 
 app.launch(share=True) 
