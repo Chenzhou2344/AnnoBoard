@@ -185,7 +185,9 @@ function addMotionBackgrounds() {
 window.onload = addMotionBackgrounds;
 </script>
 """
-data_path = "../../data/Prompts4dimensions/{}.txt"
+data_path = "../data/Prompts4dimensions/{}.txt"
+jsonpath = "./anno_files/"
+
 subdirectory = "overall_consistency"# 读取 prompt 文件
 annokey = "overall_consistency"
 models = ['cogvideox5b','gen3', 'kling','videocrafter2', 'pika', 'show1', 'lavie']
@@ -217,7 +219,6 @@ annos = {
     "action": anno_helper.action_helper,
     "overall_consistency": anno_helper.overall_consistency_help
 }
-jsonpath = "./anno_files/"
 annofile = {}
 def load_prompts(prompt_file):
     if prompt_file.startswith('http://') or prompt_file.startswith('https://'):
@@ -272,7 +273,7 @@ def showcase(page_num):
     for model in models:
         video_name = f"{prompt_text}_{video_group}.mp4"
         # video_url = f"../../data/{model}/{subdirectory}/{video_name}"
-        video_path = f"../../data/{model}/{subdirectory}/{video_name}"
+        video_path = f"../data/{model}/{subdirectory}/{video_name}"
         base64_video = video_to_base64(video_path)
         # if os.path.exists(os.path.join('data', model, subdirectory, video_name)):
         video_html.append(f"""
