@@ -2,6 +2,7 @@ import gradio as gr
 import json
 import requests
 import base64
+import time
 css = """
 <style>
 body, html {
@@ -438,6 +439,8 @@ with gr.Blocks(css=css)  as app:
                 json.dump(annofile, file,indent=4)
             with open(path, 'r') as file:
                 annofile = json.load(file)
+            print("Rating Saved",time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+
     def update_subdirectory(selected_value):
         global subdirectory, annokey, annofile
         subdirectory = dimension4data[selected_value]
