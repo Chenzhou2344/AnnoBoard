@@ -77,7 +77,7 @@ body, html {
 }
 
 .video-item video {
-    width: 100%;
+    width: 90%;
     display: block;
     border-radius: 8px;
 }
@@ -211,25 +211,14 @@ data4dimensions = {
 }
 
 annos = {
-    "temporal_consistency": "temporal_consistency",
-    "aesthetic_quality": "aesthetic_quality",
-    "imaging_quality": "imaging_quality",
-    "motion_effects": "motion_effects",
-    "object_class": "object_class",
-    "color": "color",
-    "scene": anno_helper.scene_help,
-    "action": "action",
-    "overall_consistency": "overall_consistency"
+    "object_class": anno_helper.object_class_helper,
+    "color": anno_helper.color_helper,
+    "scene": anno_helper.scene_helper,
+    "action": anno_helper.action_helper,
+    "overall_consistency": anno_helper.overall_consistency_help
 }
-jsonpath = "./annotation.json"
-if jsonpath.startswith('http://') or jsonpath.startswith('https://'):
-    response = requests.get(jsonpath)
-    response.raise_for_status()  # 确保请求成功
-    annofile =  response.text.splitlines()  # 返回文本文件的每一行
-else:
-    with open(jsonpath, 'r') as file:
-        annofile = json.load(file)
-
+jsonpath = "./anno_files/"
+annofile = {}
 def load_prompts(prompt_file):
     if prompt_file.startswith('http://') or prompt_file.startswith('https://'):
         response = requests.get(prompt_file)
@@ -341,21 +330,29 @@ with gr.Blocks(css=css)  as app:
     gr.Markdown(js)
     page_num = gr.State(value=1)
     anno_times = gr.State(value=1)
+    group_id = gr.State(value=1)
 
     videoscores = {}    
     videhtmls = {}
 
-    subdirectory_dropdown = gr.Dropdown(
-    choices=['overall_consistency', 'scene', 'object_class','action','color'],
-    label="Select dimension",  # 设置默认值
-    value='overall_consistency'
-    )
+    with gr.Row():
+        subdirectory_dropdown = gr.Dropdown(
+        choices=['overall_consistency', 'scene', 'object_class','action','color'],
+        label="Select dimension",  # 设置默认值
+        value='overall_consistency'
+        )
+        group_pointer = gr.Dropdown(
+        choices=['1', '2', '3'],
+        label="Select group",  # 设置默认值
+        value='1'
+        )
 
     with gr.Row():
         beginning_button = gr.Button("Beginning")
         previous_button = gr.Button("Previous")
         next_button = gr.Button("Next")
         end_button = gr.Button("End")
+        
     page_slider = gr.Slider(minimum=1, maximum=total_pages, step=1, value=1, label="Go to page")
     annotation_help = gr.HTML()
     for model in models:
@@ -386,6 +383,8 @@ with gr.Blocks(css=css)  as app:
 
     def submit(*scores):
         global annofile
+        path = f"./anno_files/{subdirectory}_{group_id.value}.json"
+
         if len(data4dimensions[annokey]) == 1:        
             for i in range(len(models)):
                 model = models[i]
@@ -398,20 +397,34 @@ with gr.Blocks(css=css)  as app:
 
         anno_times.value += 1
         if anno_times.value % 5 == 0:
-            with open(jsonpath, 'w') as file:
+            with open(path, 'w') as file:
                 json.dump(annofile, file,indent=4)
-            with open(jsonpath, 'r') as file:
+            with open(path, 'r') as file:
                 annofile = json.load(file)
     def update_subdirectory(selected_value):
-        global subdirectory, annokey
+        global subdirectory, annokey, annofile
         subdirectory = dimension4data[selected_value]
         annokey = selected_value
         page_num.value = 1
+
+        path = f"./anno_files/{subdirectory}_{group_id.value}.json"
+        with open(path, 'r') as file:
+            annofile = json.load(file)
+
         return *show_scoresliders(),gr.Slider(minimum=1, maximum=len(get_prompts(data_path))*3, step=1, value=1, label="Go to page"),*showcase(1)
 
     def update_socre(value):
 
         return value
+
+    def load_groupfile(selected_value):
+        global annofile
+        group_id.value = selected_value
+        path = f"./anno_files/{subdirectory}_{group_id.value}.json"
+        with open(path, 'r') as file:
+            annofile = json.load(file)
+
+
 
     def update_output(direction):
         # new_page_num = navigate(direction, page_num.value)
@@ -425,11 +438,13 @@ with gr.Blocks(css=css)  as app:
     
     def initialization(start):
         page_num.value = int(start)
+        load_groupfile(group_id.value)
         return page_num.value,*showcase(page_num.value)
 
     app.load(fn=lambda: initialization('1'), inputs=None, outputs=[page_slider, annotation_help, *videhtmls.values()])
     
     subdirectory_dropdown.change(fn=update_subdirectory, inputs=subdirectory_dropdown, outputs=[*videoscores.values(),page_slider, annotation_help, *videhtmls.values()])
+    group_pointer.change(fn=load_groupfile, inputs=group_pointer, outputs=None)
 
     beginning_button.click(fn=lambda: update_output("Beginning"), inputs=None, outputs=[page_slider, annotation_help, *videhtmls.values()])
     previous_button.click(fn=lambda: update_output("Previous"), inputs=None, outputs=[page_slider, annotation_help, *videhtmls.values()])
