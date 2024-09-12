@@ -1,10 +1,7 @@
 import gradio as gr
-import os
-import pandas as pd
 import json
 import requests
 import base64
-import anno_helper
 css = """
 <style>
 body, html {
@@ -32,7 +29,7 @@ body, html {
     position: fixed;
     top: 50%;
     left: 1rem;
-    width: 250px;
+    width: 10%;
     padding: 1rem;
     background-color: #333;
     color: #e0e0e0;
@@ -187,8 +184,8 @@ function addMotionBackgrounds() {
 window.onload = addMotionBackgrounds;
 </script>
 """
-data_path = "../data4dimensions/Prompts4dimensions/{}.txt"
-jsonpath = "./anno_files/"
+data_path = "./data4dimensions/Prompts4dimensions/{}.txt"
+jsonpath = "./data4dimensions/anno_files/"
 
 subdirectory = "overall_consistency"# 读取 prompt 文件
 annokey = "overall_consistency"
@@ -215,11 +212,32 @@ data4dimensions = {
 }
 
 annos = {
-    "object_class": anno_helper.object_class_helper,
-    "color": anno_helper.color_helper,
-    "scene": anno_helper.scene_helper,
-    "action": anno_helper.action_helper,
-    "overall_consistency": anno_helper.overall_consistency_help
+    "object_class": """对象类别一致性指的是视频和所提供文本提示之间对象的一致性。关于如何评估这一指标，请考虑以下因素：<br>
+                    ● 文本中提到的对象是否正确生成。<br>
+                    ● 文本中对象的类别是否可以清晰识别。<br>
+                    ● 生成的对象的外观和结构是否符合客观现实和人类主观认知。<br>
+                    ● 视频中的运动和变化是否自然流畅。<br>
+""",
+    "color": """颜色一致性指的是视频与所提供文本提示之间的颜色匹配程度.<br>
+                    ● 颜色是否与文本提示一致，并在整个视频中保持一致，没有颜色的突然变化。<br>
+                    ● 颜色是否出现在正确的物体或场景上。""",
+    "scene": """
+              场景一致性考虑:<br>
+                1. 文本中提到的场景是否正确生成。<br>
+                2. 文本中的场景是否可以清晰识别。<br>
+                3. 生成场景的元素的外观和结构是否符合客观现实和人类主观认知。<br>""",
+    "action": """动作一致性指的是视频和所提供文本提示之间动作的一致性。考虑：<br>
+                        1. 文本中提到的动作是否正确生成。<br>
+                        2. 文本中的动作是否可以清晰识别。<br>
+                        3. 动作的外观、过程是否符合客观现实和人类主观认知。<br>""",
+    "overall_consistency": """总体一致性考虑：<br>
+                                ●视频是否展示了文本提示中提到的所有核心元素。（核心元素包括人类、动物、动作、物体、场景、风格、空间关系、数量关系等。）<br>
+                                ● 视频的成像质量是否干扰了你对视频的理解。<br>
+                              图像质量考虑：<br>
+                                清晰度、亮度、噪声、变形、失真等。<br>
+                              审美质量考虑：<br>
+                                色彩、构图、美感等。<br>
+                                """
 }
 annofile = {}
 def load_prompts(prompt_file):
@@ -287,18 +305,18 @@ def showcase(page_num):
 
     for model in models:
         video_name = f"{prompt_text}_{video_group}.mp4"
-        video_url = f"http://localhost:8000/data4dimensions/{subdirectory}/{model}/{video_name}"
-        # video_path = f"../data4dimensions/{subdirectory}/{model}/{video_name}"
-        # base64_video = video_to_base64(video_path)
+        # video_url = f"http://localhost:8000/data4dimensions/{subdirectory}/{model}/{video_name}"
+        video_path = f"./data4dimensions/{subdirectory}/{model}/{video_name}"
+        base64_video = video_to_base64(video_path)
         # if os.path.exists(os.path.join('data', model, subdirectory, video_name)):
-        if not check_url_accessible(video_url):
-            print(f"The URL {video_url} is not accessible.")
+        # if not check_url_accessible(video_url):
+        #     print(f"The URL {video_url} is not accessible.")
 
         video_html.append(f"""
         <div class='video-container'>
         <div class='video-item'> 
             <video controls>
-                <source src="{video_url}" type="video/mp4">
+                <source src="data:video/mp4;base64,{base64_video}" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
             <p class='video-caption'>{model}: {prompt_text}</p>
@@ -402,7 +420,7 @@ with gr.Blocks(css=css)  as app:
 
     def submit(*scores):
         global annofile
-        path = f"./anno_files/{subdirectory}_{group_id.value}.json"
+        path = f"./data4dimensions/anno_files/{subdirectory}_{group_id.value}.json"
 
         if len(data4dimensions[annokey]) == 1:        
             for i in range(len(models)):
@@ -439,7 +457,7 @@ with gr.Blocks(css=css)  as app:
     def load_groupfile(selected_value):
         global annofile
         group_id.value = selected_value
-        path = f"./anno_files/{subdirectory}_{group_id.value}.json"
+        path = f"./data4dimensions/anno_files/{subdirectory}_{group_id.value}.json"
         with open(path, 'r') as file:
             annofile = json.load(file)
 
@@ -462,8 +480,8 @@ with gr.Blocks(css=css)  as app:
 
     app.load(fn=lambda: initialization('1'), inputs=None, outputs=[page_slider, annotation_help, *videhtmls.values()])
     
-    subdirectory_dropdown.change(fn=update_subdirectory, inputs=subdirectory_dropdown, outputs=[*videoscores.values(),page_slider, annotation_help, *videhtmls.values()])
-    group_pointer.change(fn=load_groupfile, inputs=group_pointer, outputs=None)
+    # subdirectory_dropdown.change(fn=update_subdirectory, inputs=subdirectory_dropdown, outputs=[*videoscores.values(),page_slider, annotation_help, *videhtmls.values()])
+    # group_pointer.change(fn=load_groupfile, inputs=group_pointer, outputs=None)
 
     beginning_button.click(fn=lambda: update_output("Beginning"), inputs=None, outputs=[page_slider, annotation_help, *videhtmls.values()])
     previous_button.click(fn=lambda: update_output("Previous"), inputs=None, outputs=[page_slider, annotation_help, *videhtmls.values()])
