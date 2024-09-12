@@ -30,15 +30,17 @@ body, html {
 
 .floating-window {
     position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    width: 300px;
+    top: 50%;
+    left: 1rem;
+    width: 250px;
     padding: 1rem;
     background-color: #333;
     color: #e0e0e0;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     border-radius: 8px;
     z-index: 1000;
+    transform: translateY(-50%);
+
 }
 
 .floating-window-header {
@@ -77,7 +79,7 @@ body, html {
 }
 
 .video-item video {
-    width: 90%;
+    width: 100%;
     display: block;
     border-radius: 8px;
 }
@@ -185,7 +187,7 @@ function addMotionBackgrounds() {
 window.onload = addMotionBackgrounds;
 </script>
 """
-data_path = "../data/Prompts4dimensions/{}.txt"
+data_path = "../data4dimensions/Prompts4dimensions/{}.txt"
 jsonpath = "./anno_files/"
 
 subdirectory = "overall_consistency"# 读取 prompt 文件
@@ -237,6 +239,19 @@ def get_prompts(data_path):
 
 total_pages = len(get_prompts(data_path)) * 3
 
+def check_url_accessible(url):
+    try:
+        response = requests.get(url)
+        # 检查响应状态码是否为200
+        if response.status_code == 200:
+            return True
+        else:
+            return False
+    except requests.RequestException as e:
+        # 捕获所有请求异常
+        print(f"Error accessing {url}: {e}")
+        return False
+
 
 def video_to_base64(video_path):
     with open(video_path, "rb") as video_file:
@@ -272,15 +287,18 @@ def showcase(page_num):
 
     for model in models:
         video_name = f"{prompt_text}_{video_group}.mp4"
-        # video_url = f"../../data/{model}/{subdirectory}/{video_name}"
-        video_path = f"../data/{model}/{subdirectory}/{video_name}"
-        base64_video = video_to_base64(video_path)
+        video_url = f"http://localhost:8000/data4dimensions/{subdirectory}/{model}/{video_name}"
+        # video_path = f"../data4dimensions/{subdirectory}/{model}/{video_name}"
+        # base64_video = video_to_base64(video_path)
         # if os.path.exists(os.path.join('data', model, subdirectory, video_name)):
+        if not check_url_accessible(video_url):
+            print(f"The URL {video_url} is not accessible.")
+
         video_html.append(f"""
         <div class='video-container'>
         <div class='video-item'> 
             <video controls>
-                <source src="data:video/mp4;base64,{base64_video}" type="video/mp4">
+                <source src="{video_url}" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
             <p class='video-caption'>{model}: {prompt_text}</p>
