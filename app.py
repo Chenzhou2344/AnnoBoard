@@ -188,8 +188,8 @@ window.onload = addMotionBackgrounds;
 data_path = "./data4dimensions/Prompts4dimensions/{}.txt"
 jsonpath = "./data4dimensions/anno_files/"
 
-subdirectory = "overall_consistency"# 读取 prompt 文件
-annokey = "overall_consistency"
+subdirectory = "object_class"# 读取 prompt 文件
+annokey = "object_class"
 models = ['cogvideox5b','gen3', 'kling','videocrafter2', 'pika', 'show1', 'lavie']
 dimension4data = {
     "temporal_consistency": "action",
@@ -377,7 +377,7 @@ with gr.Blocks(css=css)  as app:
         subdirectory_dropdown = gr.Dropdown(
         choices=['overall_consistency', 'scene', 'object_class','action','color'],
         label="Select dimension",  # 设置默认值
-        value='overall_consistency'
+        value=subdirectory
         )
         group_pointer = gr.Dropdown(
         choices=['1', '2', '3'],
@@ -396,7 +396,7 @@ with gr.Blocks(css=css)  as app:
     for model in models:
         videhtmls[model] = gr.HTML()
         with gr.Row():
-            for i in range(3):
+            for i in range(len(data4dimensions[subdirectory])):
                 key = f"{model}_{i}"
                 videoscores[key]=gr.Slider(minimum=1, maximum=5, step=1, value=3, label=f"{model} score {data4dimensions[subdirectory][i]}")
 
@@ -426,12 +426,12 @@ with gr.Blocks(css=css)  as app:
         if len(data4dimensions[annokey]) == 1:        
             for i in range(len(models)):
                 model = models[i]
-                annofile[annokey][str(page_num.value)][model] = scores[i*3]
+                annofile[annokey][str(page_num.value)][model] = scores[i*len(data4dimensions[subdirectory])]
         else:
             for i in range(len(models)):
                 model = models[i]
                 for j in range(3):
-                    annofile[data4dimensions[annokey][j]][str(page_num.value)][model] = scores[i*3+j]
+                    annofile[data4dimensions[annokey][j]][str(page_num.value)][model] = scores[i*len(data4dimensions[subdirectory])+j]
 
         anno_times.value += 1
         if anno_times.value % 5 == 0:
@@ -495,7 +495,7 @@ with gr.Blocks(css=css)  as app:
     
     
     for model in models:
-        for i in range(3):
+        for i in range(len(data4dimensions[subdirectory])):
             key = f"{model}_{i}"
             videoscores[key].input(fn=update_socre, inputs=videoscores[key], outputs=videoscores[key]) 
 
